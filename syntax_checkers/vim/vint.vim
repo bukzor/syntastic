@@ -1,5 +1,5 @@
 "============================================================================
-"File:        rpmlint.vim
+"File:        vint.vim
 "Description: Syntax checking plugin for syntastic.vim
 "Maintainer:  LCD 47 <lcd047 at gmail dot com>
 "License:     This program is free software. It comes without any warranty,
@@ -10,34 +10,46 @@
 "
 "============================================================================
 
-if exists('g:loaded_syntastic_spec_rpmlint_checker')
+if exists('g:loaded_syntastic_vim_vint_checker')
     finish
 endif
-let g:loaded_syntastic_spec_rpmlint_checker = 1
+let g:loaded_syntastic_vim_vint_checker = 1
+
+if !exists('g:syntastic_vim_vint_sort')
+    let g:syntastic_vim_vint_sort = 1
+endif
 
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! SyntaxCheckers_spec_rpmlint_GetLocList() dict
-    let makeprg = self.makeprgBuild({})
+function! SyntaxCheckers_vim_vint_GetLocList() dict
+    let makeprg = self.makeprgBuild({ 'post_args': '--json' })
 
-    let errorformat =
-        \ '%E%f:%l: E: %m,' .
-        \ '%E%f: E: %m,' .
-        \ '%W%f:%l: W: %m,' .
-        \ '%W%f: W: %m,' .
-        \ '%-G%.%#'
+    let errorformat = '%f:%l:%c:%t: %m'
 
-    return SyntasticMake({
+    let loclist = SyntasticMake({
         \ 'makeprg': makeprg,
-        \ 'errorformat': errorformat })
+        \ 'errorformat': errorformat,
+        \ 'preprocess': 'vint',
+        \ 'returns': [0, 1] })
+
+    for e in loclist
+        if e['type'] ==? 's'
+            let e['type'] = 'w'
+            let e['subtype'] = 'Style'
+        elseif e['type'] !=? 'e' && e['type'] !=? 'w'
+            let e['type'] = 'e'
+        endif
+    endfor
+
+    return loclist
 endfunction
 
 call g:SyntasticRegistry.CreateAndRegisterChecker({
-    \ 'filetype': 'spec',
-    \ 'name': 'rpmlint'})
+    \ 'filetype': 'vim',
+    \ 'name': 'vint'})
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
-" vim: set et sts=4 sw=4:
+" vim: set sw=4 sts=4 et fdm=marker:
